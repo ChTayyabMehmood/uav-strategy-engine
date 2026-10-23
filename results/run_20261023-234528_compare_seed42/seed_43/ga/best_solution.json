@@ -1,0 +1,435 @@
+{
+  "method": "genetic_algorithm",
+  "seed": 43,
+  "termination_reason": "generation_limit",
+  "generations_run": 50,
+  "evaluation_budget": 3000,
+  "evaluation_requests": 3000,
+  "unique_evaluations": 2430,
+  "cache_hits": 570,
+  "feasible_evaluations": 2367,
+  "feasibility_rate": 0.9740740740740741,
+  "runtime_seconds": 22.21737525699791,
+  "feasible": true,
+  "fitness": 123.93260879493754,
+  "metrics": {
+    "fitness": 123.93260879493754,
+    "raw_fitness": 123.93260879493754,
+    "penalty": 0.0,
+    "coverage": 1.0,
+    "detection_rate": 1.0,
+    "total_energy": 346.96431381215774,
+    "normalized_energy": 0.4448260433489202,
+    "mission_time": 85.43490767759123,
+    "normalized_time": 0.7119575639799269,
+    "total_distance": 226.53614749212113,
+    "hazard_exposure": 49.01869865493285,
+    "normalized_risk": 0.21638356261283956,
+    "covered_targets": [
+      "T0",
+      "T1",
+      "T2",
+      "T3",
+      "T4",
+      "T5",
+      "T6",
+      "T7",
+      "T8",
+      "T9",
+      "T10",
+      "T11",
+      "T12",
+      "T13"
+    ],
+    "n_targets": 14,
+    "feasible": true,
+    "violations": [],
+    "per_drone": [
+      {
+        "drone_id": 0,
+        "start": [
+          43,
+          42
+        ],
+        "distance": 46.606982892080566,
+        "duration": 63.26478889609659,
+        "energy": 40.514062747489255,
+        "hazard_exposure": 11.207587892549798,
+        "detected_targets": [
+          "T0",
+          "T4"
+        ],
+        "violations": []
+      },
+      {
+        "drone_id": 1,
+        "start": [
+          19,
+          9
+        ],
+        "distance": 85.38774874138866,
+        "duration": 77.88778463061549,
+        "energy": 156.2547325248219,
+        "hazard_exposure": 26.206123601229436,
+        "detected_targets": [
+          "T1",
+          "T2",
+          "T5",
+          "T6",
+          "T9",
+          "T10"
+        ],
+        "violations": []
+      },
+      {
+        "drone_id": 2,
+        "start": [
+          13,
+          28
+        ],
+        "distance": 94.54141585865192,
+        "duration": 85.43490767759123,
+        "energy": 150.1955185398466,
+        "hazard_exposure": 11.604987161153616,
+        "detected_targets": [
+          "T1",
+          "T3",
+          "T7",
+          "T8",
+          "T11",
+          "T12",
+          "T13"
+        ],
+        "violations": []
+      }
+    ]
+  },
+  "chromosome": {
+    "routes": [
+      {
+        "waypoints": [
+          {
+            "x": 41,
+            "y": 42,
+            "speed": 0,
+            "sensor": 2
+          },
+          {
+            "x": 45,
+            "y": 22,
+            "speed": 0,
+            "sensor": 0
+          },
+          {
+            "x": 41,
+            "y": 20,
+            "speed": 0,
+            "sensor": 2
+          },
+          {
+            "x": 35,
+            "y": 22,
+            "speed": 1,
+            "sensor": 2
+          },
+          {
+            "x": 47,
+            "y": 22,
+            "speed": 0,
+            "sensor": 0
+          },
+          {
+            "x": 46,
+            "y": 23,
+            "speed": 1,
+            "sensor": 1
+          }
+        ]
+      },
+      {
+        "waypoints": [
+          {
+            "x": 27,
+            "y": 8,
+            "speed": 1,
+            "sensor": 0
+          },
+          {
+            "x": 40,
+            "y": 10,
+            "speed": 1,
+            "sensor": 1
+          },
+          {
+            "x": 36,
+            "y": 8,
+            "speed": 2,
+            "sensor": 1
+          },
+          {
+            "x": 19,
+            "y": 2,
+            "speed": 2,
+            "sensor": 2
+          },
+          {
+            "x": 20,
+            "y": 12,
+            "speed": 1,
+            "sensor": 0
+          },
+          {
+            "x": 10,
+            "y": 42,
+            "speed": 1,
+            "sensor": 2
+          }
+        ]
+      },
+      {
+        "waypoints": [
+          {
+            "x": 4,
+            "y": 47,
+            "speed": 1,
+            "sensor": 0
+          },
+          {
+            "x": 13,
+            "y": 39,
+            "speed": 1,
+            "sensor": 2
+          },
+          {
+            "x": 32,
+            "y": 46,
+            "speed": 2,
+            "sensor": 0
+          },
+          {
+            "x": 27,
+            "y": 41,
+            "speed": 2,
+            "sensor": 2
+          },
+          {
+            "x": 11,
+            "y": 21,
+            "speed": 1,
+            "sensor": 0
+          },
+          {
+            "x": 3,
+            "y": 18,
+            "speed": 1,
+            "sensor": 2
+          }
+        ]
+      }
+    ]
+  },
+  "config": {
+    "environment": {
+      "seed": 43,
+      "width": 50,
+      "height": 50,
+      "n_targets": 14,
+      "n_obstacle_blobs": 12,
+      "obstacle_radius": [
+        2,
+        5
+      ],
+      "n_nofly_blobs": 7,
+      "nofly_radius": [
+        2,
+        4
+      ],
+      "n_hazard_blobs": 8,
+      "hazard_sigma": [
+        3.5,
+        7.0
+      ],
+      "hazard_amplitude": [
+        0.45,
+        0.9
+      ],
+      "target_priority": [
+        0.5,
+        1.0
+      ],
+      "min_start_spacing": 6,
+      "min_target_spacing": 2
+    },
+    "fleet": {
+      "n_drones": 3,
+      "waypoints_per_route": 6,
+      "max_flight_range": 110.0,
+      "battery_capacity": 260.0
+    },
+    "weights": {
+      "coverage": 100.0,
+      "detection": 50.0,
+      "energy": 20.0,
+      "time": 15.0,
+      "risk": 30.0,
+      "infeasible_base_penalty": 1000.0,
+      "violation_penalty": 50.0
+    },
+    "ga": {
+      "population_size": 60,
+      "generations": 50,
+      "mutation_rate": 0.05,
+      "tournament_size": 3,
+      "crossover_rate": 0.9,
+      "elitism": 2,
+      "stagnation_limit": null,
+      "seed": 43,
+      "cache_evaluations": true
+    },
+    "time_reference": 120.0
+  },
+  "environment_summary": {
+    "seed": 43,
+    "width": 50,
+    "height": 50,
+    "targets": [
+      {
+        "target_id": "T0",
+        "x": 43,
+        "y": 22,
+        "priority": 0.921
+      },
+      {
+        "target_id": "T1",
+        "x": 12,
+        "y": 38,
+        "priority": 0.811
+      },
+      {
+        "target_id": "T2",
+        "x": 22,
+        "y": 17,
+        "priority": 0.508
+      },
+      {
+        "target_id": "T3",
+        "x": 2,
+        "y": 49,
+        "priority": 0.502
+      },
+      {
+        "target_id": "T4",
+        "x": 34,
+        "y": 21,
+        "priority": 0.923
+      },
+      {
+        "target_id": "T5",
+        "x": 29,
+        "y": 4,
+        "priority": 0.515
+      },
+      {
+        "target_id": "T6",
+        "x": 40,
+        "y": 9,
+        "priority": 0.821
+      },
+      {
+        "target_id": "T7",
+        "x": 29,
+        "y": 42,
+        "priority": 0.649
+      },
+      {
+        "target_id": "T8",
+        "x": 32,
+        "y": 49,
+        "priority": 0.77
+      },
+      {
+        "target_id": "T9",
+        "x": 16,
+        "y": 3,
+        "priority": 0.628
+      },
+      {
+        "target_id": "T10",
+        "x": 15,
+        "y": 18,
+        "priority": 0.588
+      },
+      {
+        "target_id": "T11",
+        "x": 11,
+        "y": 22,
+        "priority": 0.595
+      },
+      {
+        "target_id": "T12",
+        "x": 4,
+        "y": 44,
+        "priority": 0.59
+      },
+      {
+        "target_id": "T13",
+        "x": 3,
+        "y": 17,
+        "priority": 0.927
+      }
+    ],
+    "starts": [
+      [
+        43,
+        42
+      ],
+      [
+        19,
+        9
+      ],
+      [
+        13,
+        28
+      ]
+    ],
+    "obstacle_cells": 396,
+    "nofly_cells": 172,
+    "hazard_mean": 0.32136236624686504,
+    "hazard_max": 1.0
+  },
+  "simulation_modes": {
+    "speed_modes": {
+      "0": {
+        "name": "slow",
+        "cells_per_time": 0.7
+      },
+      "1": {
+        "name": "cruise",
+        "cells_per_time": 1.0
+      },
+      "2": {
+        "name": "fast",
+        "cells_per_time": 1.5
+      }
+    },
+    "sensor_modes": {
+      "0": {
+        "name": "off",
+        "radius": 0.0,
+        "energy_per_time": 0.0
+      },
+      "1": {
+        "name": "medium",
+        "radius": 1.6,
+        "energy_per_time": 0.35
+      },
+      "2": {
+        "name": "high",
+        "radius": 3.2,
+        "energy_per_time": 0.85
+      }
+    },
+    "move_energy_per_cell": 1.0,
+    "speed_drag_exponent": 2.0
+  }
+}
