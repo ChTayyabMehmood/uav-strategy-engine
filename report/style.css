@@ -1,0 +1,256 @@
+@page {
+  size: A4;
+  margin: 17mm 18mm 16mm 18mm;
+  @bottom-center {
+    content: counter(page);
+    font-family: "P052", "URW Palladio L", "Palatino Linotype", "Book Antiqua", serif;
+    font-size: 8.5pt;
+    color: #222;
+    padding-top: 3mm;
+  }
+}
+
+@page :first {
+  @bottom-center {
+    content: "";
+    border-top: 0.55pt solid #222;
+    width: 100%;
+    padding-top: 2mm;
+  }
+}
+
+html {
+  font-family: "P052", "URW Palladio L", "Palatino Linotype", "Book Antiqua", serif;
+  font-size: 8.8pt;
+  line-height: 1.30;
+  color: #111;
+}
+
+body { margin: 0; }
+
+p {
+  margin: 0 0 1.75mm;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.page {
+  page-break-after: always;
+  min-height: 258mm;
+}
+
+.page:last-child { page-break-after: auto; }
+
+/* ---------- first page ---------- */
+
+.brandbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 0.55pt solid #222;
+  padding-bottom: 2.2mm;
+  margin-bottom: 13mm;
+}
+
+.brand {
+  font-family: "Ubuntu", "Liberation Sans", Arial, sans-serif;
+  font-size: 9.4pt;
+  font-weight: bold;
+  letter-spacing: 0.10em;
+  color: #12365f;
+}
+
+.brand-right {
+  font-family: "Ubuntu", "Liberation Sans", Arial, sans-serif;
+  font-size: 7.1pt;
+  line-height: 1.45;
+  color: #444;
+  text-align: right;
+}
+
+h1.title {
+  margin: 0;
+  text-align: center;
+  font-size: 18.2pt;
+  line-height: 1.22;
+  font-weight: bold;
+  letter-spacing: 0.002em;
+}
+
+.byline {
+  text-align: center;
+  margin-top: 5mm;
+  margin-bottom: 8mm;
+}
+
+.author {
+  font-size: 10.7pt;
+  font-weight: bold;
+  margin-bottom: 1.2mm;
+}
+
+.meta {
+  font-size: 8.9pt;
+  line-height: 1.45;
+  color: #222;
+}
+
+.abstract-title {
+  text-align: center;
+  font-size: 11.5pt;
+  font-weight: bold;
+  margin: 0 0 3.2mm;
+}
+
+.abstract {
+  font-size: 8.75pt;
+  line-height: 1.33;
+  padding: 0 2mm;
+}
+
+.abstract p { margin-bottom: 0; }
+
+.repo {
+  text-align: center;
+  font-size: 8.35pt;
+  margin-top: 3.2mm;
+  color: #333;
+}
+
+.repo a {
+  color: #174f87;
+  text-decoration: none;
+}
+
+figure {
+  margin: 0;
+}
+
+.fig1 {
+  margin-top: 8mm;
+}
+
+.fig1-grid {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  gap: 4mm;
+  align-items: end;
+}
+
+.fig1-grid img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.panel { margin: 0; }
+
+.panel-label {
+  text-align: center;
+  font-size: 8.6pt;
+  margin-top: 1.2mm;
+}
+
+figcaption {
+  font-size: 8.25pt;
+  line-height: 1.32;
+  text-align: justify;
+  margin-top: 2.2mm;
+  padding: 0 1mm;
+}
+
+figcaption b { font-weight: bold; }
+
+
+
+/* ---------- body pages ---------- */
+
+h2 {
+  font-size: 10.8pt;
+  font-weight: bold;
+  margin: 5.5mm 0 2mm;
+  page-break-after: avoid;
+}
+
+h2:first-child { margin-top: 0; }
+
+h3 {
+  font-size: 9.45pt;
+  font-weight: bold;
+  margin: 3.8mm 0 1.4mm;
+  page-break-after: avoid;
+}
+
+.lead { margin-bottom: 2.4mm; }
+
+.eq {
+  text-align: center;
+  margin: 2.2mm 0 2.4mm;
+  font-size: 9.5pt;
+}
+
+.eq .num {
+  float: right;
+  font-size: 9pt;
+}
+
+.note {
+  font-size: 8.6pt;
+  line-height: 1.35;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2.2mm 0 1.6mm;
+  font-size: 8.55pt;
+  page-break-inside: avoid;
+}
+
+th, td {
+  padding: 1.35mm 1.6mm;
+  text-align: right;
+  border-top: 0.45pt solid #999;
+  border-bottom: 0.45pt solid #999;
+}
+
+th {
+  font-weight: bold;
+  border-top: 0.9pt solid #222;
+  border-bottom: 0.55pt solid #222;
+}
+
+th:first-child, td:first-child { text-align: left; }
+
+tbody tr:last-child td { border-bottom: 0.9pt solid #222; }
+
+.table-caption {
+  font-size: 8.25pt;
+  line-height: 1.32;
+  margin: 2mm 0 0;
+  text-align: justify;
+}
+
+.fig2 {
+  margin-top: 3mm;
+}
+
+.fig2 img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.refs {
+  font-size: 8.0pt;
+  line-height: 1.26;
+}
+
+.refs p {
+  margin: 0 0 1.05mm;
+  padding-left: 6mm;
+  text-indent: -6mm;
+  text-align: left;
+}
+
+.small { font-size: 8.7pt; }
