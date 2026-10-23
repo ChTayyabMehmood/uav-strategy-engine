@@ -41,10 +41,10 @@
       and avoid obstacles, no-fly zones and dangerous cells. We use a genetic algorithm (GA)
       because it can search many possible routes and handle several goals at the same time.
       A chromosome stores every waypoint, speed and sensor choice. A simulator flies the route
-      and gives it a score based on area coverage, target detection, energy, time and risk.
-      We compare the GA with random search using the same number of trials. Over three seeds,
-      the GA scored 119.1 ± 6.9 on average, while random search scored 89.6 ± 15.9. The best GA
-      run covered all priority cells and found all 14 targets. This report explains the design,
+      and gives it a score based on priority-weighted target coverage, target detection,
+      energy, time and risk. We compare the GA with random search using the same number of
+      trials. Over three seeds, the GA scored 119.1 ± 6.9 on average, while random search
+      scored 89.6 ± 15.9. The best GA run detected all 14 targets. This report explains the design,
       tests the main parameters, and discusses why the final route is one of many good answers
       rather than a single correct one.
     </p>
@@ -68,7 +68,7 @@
     <figcaption>
       <b>Figure 1 |</b> (a) The best route found by the GA. Triangles mark the three drone
       bases, stars mark targets, dark cells are obstacles, and shaded cells show hazard.
-      This run covered 100% of the priority area and found all 14 targets. (b) Best and average
+      This run detected all 14 targets, giving 100% priority-weighted coverage. (b) Best and average
       score over 50 generations. The average rises as the population finds more valid routes,
       while the best score improves quickly and then levels off.
     </figcaption>
@@ -123,15 +123,15 @@
   </div>
 
   <p>
-    <i>C</i> is the share of priority weight that the drones observe, and <i>D</i> is the share
+    <i>C</i> is the share of target priority that the drones detect, and <i>D</i> is the share
     of the 14 targets they detect. <i>E</i> is total energy divided by the fleet limit (780),
     <i>T</i> is the longest drone flight time divided by the time limit (120), and <i>R</i> is the
     average hazard level on the cells that were flown over. <i>P</i> is a penalty for a route
     that breaks a hard constraint.
   </p>
   <p>
-    Coverage has the largest reward (+100) because inspecting the disaster area is the main task.
-    Detection is next (+50) because finding targets is the main information the team needs. Risk
+    Coverage has the largest reward (+100) because reaching high-priority targets is the main
+    task. Detection is next (+50) so that the plan is also rewarded for finding each target. Risk
     has the largest punishment (−30) because flying through fire or radiation is dangerous.
     Energy (−20) and time (−15) have smaller weights because the hard limits already reject routes
     that run out of battery or take too long; these weights only prefer safer margins among valid
@@ -202,7 +202,7 @@
     </tbody>
   </table>
   <p class="note">
-    Score is the fitness from Equation 1. Coverage is the share of priority weight observed.
+    Score is the fitness from Equation 1. Coverage is the share of target priority detected.
     Targets is the average number found out of 14. Risk is the average hazard level (0–1).
   </p>
 
@@ -215,14 +215,14 @@
   <p>
     Table 1 shows that the GA is better on every measure. Its average score is 119.1, which is
     about 33% higher than the random-search score of 89.6. It covers 15.6 more percentage points
-    of the priority area and finds two more targets on average. It also uses about 29% less
-    energy and 20% less flight time, and its risk is lower (0.189 versus 0.289).
+    of priority-weighted targets and finds two more targets on average. It also uses about 29%
+    less energy and 20% less flight time, and its risk is lower (0.189 versus 0.289).
   </p>
   <p>
     The GA is also more reliable. Its score changes by 6.9 points between seeds, while random
     search changes by 15.9 points. Random search depends heavily on luck: its best run scored
     105.6, which is still below the GA average, and its worst run scored only 73.9. The best GA
-    run reached 128.6, covered 100% of the priority area and found all 14 targets. That run used
+    run reached 128.6, detected all 14 targets and achieved 100% priority-weighted coverage. That run used
     a larger population and 5,000 evaluations, so it is reported as the best result rather than
     as part of the equal-budget table.
   </p>
@@ -231,7 +231,7 @@
   <p>
     We tested one parameter at a time with two seeds and 30 generations. The results are shown in
     Figure 2. A population of 50 scored 123.2, a population of 100 scored 127.0, and a population
-    of 200 scored 127.9. The two larger populations covered 100% of the priority area, but 200
+    of 200 scored 127.9. The two larger populations covered 100% of priority-weighted targets, but 200
     needed about twice the run time of 100, so 100 is the best balance.
   </p>
   <p>
@@ -275,7 +275,7 @@
     This project built a complete GA strategy engine for a three-drone disaster mission. The
     chromosome stores waypoints, speed and sensor choices; the score balances coverage,
     detection, energy, time and risk; and repair keeps routes valid. The GA beat random search
-    with the same budget, and the best run covered every priority cell and found every target.
+    with the same budget, and the best run found every target with full priority-weighted coverage.
     The result is one of several good routes, which is the right outcome for a problem with
     competing goals.
   </p>
