@@ -24,8 +24,10 @@ DRONE_COLORS = [
 ]
 
 
-def route_coordinates(drone: Drone, route) -> list[tuple[int, int]]:
-    return [drone.start] + [(wp.x, wp.y) for wp in route.waypoints]
+def route_coordinates(
+    start: tuple[int, int], route
+) -> list[tuple[int, int]]:
+    return [start] + [(wp.x, wp.y) for wp in route.waypoints]
 
 
 def plot_mission_map(
@@ -65,10 +67,15 @@ def plot_mission_map(
     )
 
     detected = set(evaluation.covered_targets)
-    for drone, route, color in zip(
-        drones, chromosome.routes, DRONE_COLORS * 2
+    starts = (
+        [item.start for item in evaluation.per_drone]
+        if evaluation.per_drone
+        else [drone.start for drone in drones]
+    )
+    for drone_id, (start, route, color) in enumerate(
+        zip(starts, chromosome.routes, DRONE_COLORS * 2)
     ):
-        coordinates = route_coordinates(drone, route)
+        coordinates = route_coordinates(start, route)
         xs, ys = zip(*coordinates)
         ax.plot(
             xs,
@@ -79,11 +86,11 @@ def plot_mission_map(
             markersize=3.2,
             alpha=0.95,
             zorder=4,
-            label=f"Drone {drone.drone_id}",
+            label=f"Drone {drone_id}",
         )
         ax.scatter(
-            [drone.start[0]],
-            [drone.start[1]],
+            [start[0]],
+            [start[1]],
             marker="^",
             s=120,
             color=color,
@@ -155,11 +162,15 @@ def plot_mission_map(
             color="gray",
             linestyle="none",
             markersize=9,
-            label="Drone start",
+            label="Deployment cell",
         ),
     ]
-    for drone, color in zip(drones, DRONE_COLORS * 2):
-        handles.append(Line2D([], [], color=color, label=f"Drone {drone.drone_id}"))
+    for drone_id, color in enumerate(
+        DRONE_COLORS[: len(chromosome.routes)]
+    ):
+        handles.append(
+            Line2D([], [], color=color, label=f"Drone {drone_id}")
+        )
     ax.legend(
         handles=handles,
         loc="upper left",

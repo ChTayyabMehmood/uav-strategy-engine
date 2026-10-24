@@ -239,13 +239,25 @@ def repair_chromosome(
 
     if len(chromosome.routes) != len(drones):
         return None
+    if chromosome.deployments:
+        if len(chromosome.deployments) != len(drones):
+            return None
+        starts = list(chromosome.deployments)
+    else:
+        starts = [drone.start for drone in drones]
+    for start in starts:
+        if not env.is_free(*start):
+            return None
     routes: list[DroneRoute] = []
-    for route, drone in zip(chromosome.routes, drones):
-        repaired = repair_route(env, route, drone.start, rng, env.targets)
+    for route, start in zip(chromosome.routes, starts):
+        repaired = repair_route(env, route, start, rng, env.targets)
         if repaired is None:
             return None
         routes.append(repaired)
-    return Chromosome(routes=routes)
+    return Chromosome(
+        routes=routes,
+        deployments=list(chromosome.deployments),
+    )
 
 
 def visited_cells(

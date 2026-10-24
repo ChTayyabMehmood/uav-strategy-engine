@@ -35,6 +35,7 @@ class EnvironmentConfig:
     hazard_amplitude: tuple[float, float] = (0.45, 0.90)
 
     target_priority: tuple[float, float] = (0.5, 1.0)
+    target_zone_radius: float = 3.0
     min_start_spacing: int = 6
     min_target_spacing: int = 2
 
@@ -86,11 +87,13 @@ class GAConfig:
 
     population_size: int = 60
     generations: int = 50
-    mutation_rate: float = 0.05
+    mutation_rate: float = 0.2
     tournament_size: int = 3
     crossover_rate: float = 0.9
     elitism: int = 2
     stagnation_limit: int | None = None
+    immigrant_rate: float = 0.1
+    immigrant_patience: int = 4
     seed: int = 42
     cache_evaluations: bool = True
 

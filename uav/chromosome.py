@@ -7,9 +7,10 @@ sequence of :class:`Waypoint` genes.  A gene stores:
 * a categorical ``speed`` mode (0 slow, 1 cruise, 2 fast);
 * a categorical ``sensor`` power mode (0 off, 1 medium, 2 high).
 
-The drone's launch cell is *not* a gene: the evaluator always starts at the
-drone's fixed start position.  Settings on waypoint *i* govern the leg flown
-from the previous point to waypoint *i*.
+A second, shorter segment stores each drone's deployment cell.  It is evolved
+alongside the routes, so the GA chooses where the fleet starts as well as where
+it flies.  Settings on waypoint *i* govern the leg flown from the previous
+point to waypoint *i*.
 
 Waypoints are immutable (``frozen=True``), which makes it safe for crossover to
 reuse them while still building independent route lists.  :meth:`copy` returns
@@ -20,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 
-from uav.drone import SENSOR_MODES, SPEED_MODES
+from uav.drone import SENSOR_MODES, SPEED_MODES, Drone
 
 
 @dataclass(frozen=True)
@@ -55,23 +56,37 @@ class DroneRoute:
 
 @dataclass
 class Chromosome:
-    """Complete fleet strategy: one route per drone."""
+    """Complete fleet strategy: deployment cells plus one route per drone."""
 
     routes: list[DroneRoute] = field(default_factory=list)
+    deployments: list[tuple[int, int]] = field(default_factory=list)
 
     def copy(self) -> Chromosome:
-        return Chromosome(routes=[route.copy() for route in self.routes])
+        return Chromosome(
+            routes=[route.copy() for route in self.routes],
+            deployments=list(self.deployments),
+        )
+
+    def start_for(
+        self, drone_id: int, fallback: tuple[int, int]
+    ) -> tuple[int, int]:
+        """Return the evolved deployment cell, or a fixed fallback."""
+
+        if drone_id < len(self.deployments):
+            return self.deployments[drone_id]
+        return fallback
 
     def signature(self) -> tuple:
         """Stable hashable representation used for evaluation caching."""
 
-        return tuple(
+        routes = tuple(
             tuple(
                 (wp.x, wp.y, wp.speed, wp.sensor)
                 for wp in route.waypoints
             )
             for route in self.routes
         )
+        return routes, tuple(self.deployments)
 
     def validate_structure(
         self,
@@ -79,12 +94,14 @@ class Chromosome:
         n_waypoints: int,
         width: int | None = None,
         height: int | None = None,
+        require_deployments: bool = False,
     ) -> None:
         """Raise ``ValueError`` if the chromosome is structurally invalid.
 
         Bounds are checked only when ``width`` / ``height`` are provided.
         ``Waypoint`` itself validates coordinates are integers and modes are
-        valid.
+        valid.  Older tests and callers may omit deployments; the evaluator
+        then falls back to the environment's fixed launch cells.
         """
 
         if not isinstance(self.routes, list):
@@ -93,6 +110,21 @@ class Chromosome:
             raise ValueError(
                 f"expected {n_drones} routes, found {len(self.routes)}"
             )
+        if self.deployments:
+            if len(self.deployments) != n_drones:
+                raise ValueError(
+                    f"expected {n_drones} deployments, "
+                    f"found {len(self.deployments)}"
+                )
+            for i, (x, y) in enumerate(self.deployments):
+                if not isinstance(x, int) or not isinstance(y, int):
+                    raise ValueError(f"deployment {i} must use integer cells")
+                if width is not None and not 0 <= x < width:
+                    raise ValueError(f"deployment {i} x={x} out of bounds")
+                if height is not None and not 0 <= y < height:
+                    raise ValueError(f"deployment {i} y={y} out of bounds")
+        elif require_deployments:
+            raise ValueError("deployments are required")
         for i, route in enumerate(self.routes):
             if not isinstance(route, DroneRoute):
                 raise ValueError(f"route {i} is not a DroneRoute")
@@ -110,7 +142,10 @@ class Chromosome:
                     raise ValueError(f"waypoint {i}:{j} y={wp.y} out of bounds")
 
     def to_dict(self) -> dict:
-        return {"routes": [route.to_dict() for route in self.routes]}
+        return {
+            "deployments": [list(cell) for cell in self.deployments],
+            "routes": [route.to_dict() for route in self.routes],
+        }
 
     @staticmethod
     def from_dict(data: dict) -> Chromosome:
@@ -128,4 +163,27 @@ class Chromosome:
             )
             for route in data["routes"]
         ]
-        return Chromosome(routes=routes)
+        return Chromosome(
+            routes=routes,
+            deployments=[
+                (int(x), int(y))
+                for x, y in data.get("deployments", [])
+            ],
+        )
+
+
+def fleet_for_chromosome(
+    base_fleet: list[Drone],
+    chromosome: Chromosome,
+) -> list[Drone]:
+    """Return drones whose starts honour the evolved deployment genes."""
+
+    return [
+        Drone(
+            drone_id=drone.drone_id,
+            start=chromosome.start_for(drone.drone_id, drone.start),
+            max_flight_range=drone.max_flight_range,
+            battery_capacity=drone.battery_capacity,
+        )
+        for drone in base_fleet
+    ]

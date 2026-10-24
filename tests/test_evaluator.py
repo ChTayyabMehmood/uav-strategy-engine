@@ -108,6 +108,20 @@ def test_duplicate_detections_count_once() -> None:
     assert result.covered_targets == ["T0"]
 
 
+def test_deployment_genes_control_the_start_cell() -> None:
+    env = make_env(targets=[], starts=[(0, 0), (9, 0)])
+    chromosome = Chromosome(
+        [
+            route((2, 0, 1, 0)),
+            route((2, 0, 1, 0)),
+        ],
+        deployments=[(0, 0), (5, 0)],
+    )
+    result = evaluator_for(env).evaluate(chromosome)
+    assert [item.start for item in result.per_drone] == [(0, 0), (5, 0)]
+    assert result.per_drone[1].distance == pytest.approx(3.0)
+
+
 def test_empty_targets_are_safe() -> None:
     env = make_env(targets=[])
     chromosome = Chromosome([route((2, 2, 1, 2)), route((8, 8, 1, 2))])

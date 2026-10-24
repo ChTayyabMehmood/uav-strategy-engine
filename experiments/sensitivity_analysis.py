@@ -27,7 +27,7 @@ from uav.drone import Drone
 
 DEFAULT_VALUES: dict[str, list[float]] = {
     "population_size": [50, 100, 200],
-    "mutation_rate": [0.01, 0.05, 0.10],
+    "mutation_rate": [0.10, 0.20, 0.30],
     "tournament_size": [2, 3, 5],
 }
 

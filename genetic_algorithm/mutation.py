@@ -9,11 +9,12 @@ from simulation.repair import (
     repair_chromosome,
     sample_area_waypoint,
 )
-from uav.chromosome import Chromosome, Waypoint
+from uav.chromosome import Chromosome, Waypoint, fleet_for_chromosome
 from uav.drone import Drone
 
 MOVE_PROBABILITY = 0.60
 SPEED_PROBABILITY = 0.20
+DEPLOYMENT_RATE = 0.05
 
 
 def mutate(
@@ -23,6 +24,7 @@ def mutate(
     rng: np.random.Generator,
     mutation_rate: float,
     max_step: int = 4,
+    deployment_rate: float = DEPLOYMENT_RATE,
 ) -> Chromosome:
     """Mutate a copy of ``chromosome`` with per-waypoint probability.
 
@@ -42,8 +44,18 @@ def mutate(
     child = chromosome.copy()
     if mutation_rate == 0.0:
         return child
+    if not child.deployments:
+        child.deployments = [drone.start for drone in drones]
 
-    for drone, route in zip(drones, child.routes):
+    for i in range(len(child.deployments)):
+        if rng.random() >= deployment_rate:
+            continue
+        moved = _nearby_free_cell(env, child.deployments[i], rng)
+        if moved is not None:
+            child.deployments[i] = moved
+
+    fleet = fleet_for_chromosome(drones, child)
+    for drone, route in zip(fleet, child.routes):
         previous = drone.start
         for i, wp in enumerate(route.waypoints):
             if rng.random() >= mutation_rate:
@@ -82,3 +94,24 @@ def mutate(
         # invalid candidate.
         return chromosome.copy()
     return repaired
+
+
+def _nearby_free_cell(
+    env: GridEnvironment,
+    cell: tuple[int, int],
+    rng: np.random.Generator,
+    radius: int = 10,
+) -> tuple[int, int] | None:
+    """Sample a free deployment cell near ``cell``."""
+
+    x, y = cell
+    for _ in range(24):
+        nx = int(np.clip(x + rng.integers(-radius, radius + 1), 0, env.width - 1))
+        ny = int(np.clip(y + rng.integers(-radius, radius + 1), 0, env.height - 1))
+        if env.is_free(nx, ny):
+            return nx, ny
+    ys, xs = np.nonzero(env.free_mask)
+    if len(xs) == 0:
+        return None
+    index = int(rng.integers(0, len(xs)))
+    return int(xs[index]), int(ys[index])

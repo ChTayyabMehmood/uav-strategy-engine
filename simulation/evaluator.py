@@ -16,7 +16,7 @@ import numpy as np
 from config import FitnessWeights
 from environment.grid import GridEnvironment
 from simulation.constraints import segment_distance, segment_samples
-from uav.chromosome import Chromosome
+from uav.chromosome import Chromosome, fleet_for_chromosome
 from uav.drone import (
     CRUISE_SPEED,
     MOVE_ENERGY_PER_CELL,
@@ -87,6 +87,10 @@ class EvaluationResult:
     feasible: bool
     violations: list[Violation]
     per_drone: list[DroneEvaluation]
+    covered_cells: int = 0
+    free_cells: int = 0
+    surveyed_fraction: float = 0.0
+    coverage_mask: np.ndarray | None = field(default=None, repr=False)
 
     def to_dict(self) -> dict:
         return {
@@ -107,6 +111,9 @@ class EvaluationResult:
             "feasible": bool(self.feasible),
             "violations": [v.to_dict() for v in self.violations],
             "per_drone": [d.to_dict() for d in self.per_drone],
+            "covered_cells": int(self.covered_cells),
+            "free_cells": int(self.free_cells),
+            "surveyed_fraction": float(self.surveyed_fraction),
         }
 
 
@@ -127,10 +134,13 @@ class MissionEvaluator:
         self.target_ids = [t.target_id for t in env.targets]
         self.target_x = np.array([t.x for t in env.targets], dtype=float)
         self.target_y = np.array([t.y for t in env.targets], dtype=float)
-        self.total_priority = float(sum(t.priority for t in env.targets))
+        self.priority_map = np.asarray(env.priority_map, dtype=float)
+        self.total_priority_mass = float(self.priority_map.sum())
+        self.free_cells = env.free_cell_count
         self.total_capacity = float(
             sum(d.battery_capacity for d in self.drones)
         )
+        self._sensor_offsets: dict[float, np.ndarray] = {}
 
     # ------------------------------------------------------------------
     # Helpers
@@ -159,6 +169,10 @@ class MissionEvaluator:
             feasible=False,
             violations=[violation],
             per_drone=[],
+            covered_cells=0,
+            free_cells=self.free_cells,
+            surveyed_fraction=0.0,
+            coverage_mask=np.zeros_like(self.env.free_mask),
         )
 
     def _leg_detections(
@@ -175,6 +189,48 @@ class MissionEvaluator:
         hit = np.any(dx * dx + dy * dy <= radius * radius, axis=0)
         return {int(i) for i in np.flatnonzero(hit)}
 
+    def _offsets(self, radius: float) -> np.ndarray:
+        """Integer cell offsets inside a sensor disk."""
+
+        key = round(float(radius), 6)
+        cached = self._sensor_offsets.get(key)
+        if cached is not None:
+            return cached
+        r = int(np.ceil(radius))
+        dy, dx = np.mgrid[-r : r + 1, -r : r + 1]
+        keep = dx * dx + dy * dy <= radius * radius
+        offsets = np.stack((dx[keep], dy[keep]), axis=1)
+        self._sensor_offsets[key] = offsets
+        return offsets
+
+    def _mark_sensor_footprint(
+        self,
+        mask: np.ndarray,
+        samples: np.ndarray,
+        radius: float,
+    ) -> None:
+        """Union the sensor disks around the rounded sampled path cells."""
+
+        if radius <= 0.0 or len(samples) == 0:
+            return
+        points = np.rint(samples).astype(int)
+        points = np.unique(points, axis=0)
+        offsets = self._offsets(radius)
+        px = points[:, 0][:, None] + offsets[None, :, 0]
+        py = points[:, 1][:, None] + offsets[None, :, 1]
+        inside = (
+            (px >= 0)
+            & (px < self.env.width)
+            & (py >= 0)
+            & (py < self.env.height)
+        )
+        if not bool(inside.any()):
+            return
+        px = px[inside]
+        py = py[inside]
+        free = self.env.free_mask[py, px]
+        mask[py[free], px[free]] = True
+
     # ------------------------------------------------------------------
     # Evaluation
     # ------------------------------------------------------------------
@@ -190,15 +246,25 @@ class MissionEvaluator:
                 n_waypoints=n_waypoints,
                 width=self.env.width,
                 height=self.env.height,
+                require_deployments=bool(chromosome.deployments),
             )
         except ValueError as exc:
             return self._invalid_result(str(exc))
 
+        fleet = fleet_for_chromosome(self.drones, chromosome)
+        for drone in fleet:
+            if not self.env.is_free(*drone.start):
+                return self._invalid_result(
+                    f"deployment {drone.drone_id} at {drone.start} "
+                    "is outside free airspace"
+                )
+
         covered: set[int] = set()
+        coverage_mask = np.zeros((self.env.height, self.env.width), dtype=bool)
         violations: list[Violation] = []
         per_drone: list[DroneEvaluation] = []
 
-        for drone, route in zip(self.drones, chromosome.routes):
+        for drone, route in zip(fleet, chromosome.routes):
             previous = drone.start
             distance = 0.0
             duration = 0.0
@@ -268,8 +334,10 @@ class MissionEvaluator:
                     risk += (
                         float(self.env.hazard_map[vy, vx].mean()) * length
                     )
-                    detected |= self._leg_detections(
-                        valid_samples, sensor_radius(wp.sensor)
+                    radius = sensor_radius(wp.sensor)
+                    detected |= self._leg_detections(valid_samples, radius)
+                    self._mark_sensor_footprint(
+                        coverage_mask, valid_samples, radius
                     )
 
                 distance += length
@@ -313,13 +381,17 @@ class MissionEvaluator:
                 )
             )
 
-        covered_priority = float(
-            sum(self.env.targets[i].priority for i in covered)
+        observed_priority = float(
+            self.priority_map[coverage_mask].sum()
         )
         coverage = (
-            covered_priority / self.total_priority
-            if self.total_priority > 0.0
+            observed_priority / self.total_priority_mass
+            if self.total_priority_mass > 0.0
             else 0.0
+        )
+        covered_cells = int(coverage_mask.sum())
+        surveyed_fraction = (
+            covered_cells / self.free_cells if self.free_cells else 0.0
         )
         detection_rate = (
             len(covered) / len(self.env.targets)
@@ -386,4 +458,8 @@ class MissionEvaluator:
             feasible=not violations,
             violations=violations,
             per_drone=per_drone,
+            covered_cells=covered_cells,
+            free_cells=self.free_cells,
+            surveyed_fraction=float(surveyed_fraction),
+            coverage_mask=coverage_mask,
         )

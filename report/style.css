@@ -224,6 +224,10 @@ th:first-child, td:first-child { text-align: left; }
 
 tbody tr:last-child td { border-bottom: 0.9pt solid #222; }
 
+.keep {
+  page-break-inside: avoid;
+}
+
 .table-caption {
   font-size: 8.25pt;
   line-height: 1.32;
@@ -236,6 +240,17 @@ tbody tr:last-child td { border-bottom: 0.9pt solid #222; }
 }
 
 .fig2 img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fig3 {
+  margin-top: 3mm;
+  margin-bottom: 3mm;
+}
+
+.fig3 img {
   display: block;
   width: 100%;
   height: auto;

@@ -26,6 +26,17 @@ def test_grid_dimensions_and_targets_are_valid() -> None:
         assert env.is_free(x, y)
 
 
+def test_priority_map_covers_target_zones() -> None:
+    env = generate_environment(
+        EnvironmentConfig(seed=7, width=30, height=30), 3
+    )
+    assert env.priority_map.shape == (30, 30)
+    assert env.priority_mass > 0.0
+    assert env.priority_map.sum() == pytest.approx(env.priority_mass)
+    for target in env.targets:
+        assert env.priority_map[target.y, target.x] > 0.0
+
+
 def test_same_seed_is_reproducible() -> None:
     cfg = EnvironmentConfig(seed=123, width=25, height=25)
     a = generate_environment(cfg, 2)

@@ -12,7 +12,10 @@ matplotlib.use("Agg")
 
 from visualization.comparison import plot_algorithm_comparison
 from visualization.convergence import plot_best_so_far, plot_convergence
-from visualization.coverage import plot_coverage_overview
+from visualization.coverage import (
+    plot_coverage_evolution,
+    plot_coverage_overview,
+)
 from visualization.mission_map import DRONE_COLORS, plot_mission_map
 from visualization.sensitivity import plot_sensitivity_summary
 
@@ -21,6 +24,7 @@ __all__ = [
     "plot_algorithm_comparison",
     "plot_best_so_far",
     "plot_convergence",
+    "plot_coverage_evolution",
     "plot_coverage_overview",
     "plot_mission_map",
     "plot_sensitivity_summary",

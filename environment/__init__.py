@@ -5,12 +5,13 @@ from environment.grid import (
     GridEnvironment,
     generate_environment,
 )
-from environment.targets import Target, total_priority
+from environment.targets import Target, build_priority_map, total_priority
 
 __all__ = [
     "EnvironmentGenerationError",
     "GridEnvironment",
     "Target",
+    "build_priority_map",
     "generate_environment",
     "total_priority",
 ]

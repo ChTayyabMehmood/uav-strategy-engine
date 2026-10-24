@@ -36,6 +36,7 @@ from visualization import (
     plot_algorithm_comparison,
     plot_best_so_far,
     plot_convergence,
+    plot_coverage_evolution,
     plot_coverage_overview,
     plot_mission_map,
     plot_sensitivity_summary,
@@ -63,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--population", type=int, default=60)
     parser.add_argument("--generations", type=int, default=50)
-    parser.add_argument("--mutation-rate", type=float, default=0.05)
+    parser.add_argument("--mutation-rate", type=float, default=0.2)
     parser.add_argument("--tournament-size", type=int, default=3)
     parser.add_argument("--crossover-rate", type=float, default=0.9)
     parser.add_argument("--elitism", type=int, default=2)
@@ -358,6 +359,14 @@ def save_ga_artifacts(
             run_dir / "mission_map_initial.png",
             title=f"{title_prefix} - generation 0 best",
         )
+        if len(result.generation_best_chromosomes) > 1:
+            plot_coverage_evolution(
+                env,
+                result.generation_best_chromosomes,
+                result.generation_best_evaluations,
+                run_dir / "coverage_evolution.png",
+                title=f"{title_prefix} - coverage evolution",
+            )
 
 
 def print_ga_summary(result: OptimizationResult, run_dir: Path) -> None:

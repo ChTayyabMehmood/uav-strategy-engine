@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import statistics
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -72,6 +72,8 @@ class OptimizationResult:
     feasible_candidates_final: int
     feasible_evaluations: int
     feasibility_rate: float
+    generation_best_chromosomes: list[Chromosome] = field(default_factory=list)
+    generation_best_evaluations: list[EvaluationResult] = field(default_factory=list)
 
 
 class GeneticAlgorithm:
@@ -112,6 +114,10 @@ class GeneticAlgorithm:
             raise ValueError("mutation_rate must be in [0, 1]")
         if not 0.0 <= config.crossover_rate <= 1.0:
             raise ValueError("crossover_rate must be in [0, 1]")
+        if not 0.0 <= config.immigrant_rate <= 1.0:
+            raise ValueError("immigrant_rate must be in [0, 1]")
+        if config.immigrant_patience < 0:
+            raise ValueError("immigrant_patience must be >= 0")
 
         self.evaluator = MissionEvaluator(
             env, self.drones, weights, time_reference=time_reference
@@ -215,6 +221,8 @@ class GeneticAlgorithm:
         initial_best_chromosome, initial_best_evaluation = self._best_pair(
             population, evaluations
         )
+        generation_best_chromosomes = [initial_best_chromosome.copy()]
+        generation_best_evaluations = [initial_best_evaluation]
         if self.progress is not None:
             self.progress(0, history[-1])
 
@@ -286,8 +294,49 @@ class GeneticAlgorithm:
                     next_population.append(repaired)
 
             population = next_population
+            if (
+                self.config.immigrant_rate > 0.0
+                and self.config.immigrant_patience > 0
+                and stagnation >= self.config.immigrant_patience
+            ):
+                n_immigrants = max(
+                    1,
+                    int(round(
+                        self.config.immigrant_rate * len(population)
+                    )),
+                )
+                worst = sorted(
+                    range(len(population)),
+                    key=lambda i: (
+                        evaluations[i].feasible,
+                        evaluations[i].fitness,
+                    ),
+                )[:n_immigrants]
+                injected = 0
+                for index in worst:
+                    candidate = random_chromosome(
+                        self.env,
+                        self.drones,
+                        n_waypoints,
+                        rng,
+                    )
+                    if candidate is not None:
+                        population[index] = candidate
+                        injected += 1
+                if injected:
+                    self.logger.info(
+                        "generation %d: injected %d random immigrants",
+                        generation,
+                        injected,
+                    )
+                    stagnation = 0
             evaluations = [self._evaluate(c) for c in population]
             history.append(self._stats(generation, population, evaluations))
+            gen_best_chromosome, gen_best_evaluation = self._best_pair(
+                population, evaluations
+            )
+            generation_best_chromosomes.append(gen_best_chromosome.copy())
+            generation_best_evaluations.append(gen_best_evaluation)
             if self.progress is not None:
                 self.progress(generation, history[-1])
 
@@ -333,4 +382,6 @@ class GeneticAlgorithm:
                 if self._unique
                 else 0.0
             ),
+            generation_best_chromosomes=generation_best_chromosomes,
+            generation_best_evaluations=generation_best_evaluations,
         )

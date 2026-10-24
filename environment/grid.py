@@ -19,7 +19,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from config import EnvironmentConfig
-from environment.targets import Target
+from environment.targets import Target, build_priority_map
 
 
 class EnvironmentGenerationError(RuntimeError):
@@ -36,6 +36,7 @@ class GridEnvironment:
     targets: list[Target]
     starts: list[tuple[int, int]]
     seed: int
+    priority_map: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         self.obstacle_mask = np.asarray(self.obstacle_mask, dtype=bool)
@@ -49,6 +50,14 @@ class GridEnvironment:
             raise ValueError("hazard_map must be two-dimensional")
         self.targets = list(self.targets)
         self.starts = [tuple(p) for p in self.starts]
+        if self.priority_map is None:
+            self.priority_map = build_priority_map(
+                self.width, self.height, self.targets
+            )
+        else:
+            self.priority_map = np.asarray(self.priority_map, dtype=float)
+            if self.priority_map.shape != self.hazard_map.shape:
+                raise ValueError("priority_map must match the hazard map shape")
 
     @property
     def width(self) -> int:
@@ -68,6 +77,14 @@ class GridEnvironment:
     def free_mask(self) -> np.ndarray:
         return ~self.forbidden_mask
 
+    @property
+    def free_cell_count(self) -> int:
+        return int(self.free_mask.sum())
+
+    @property
+    def priority_mass(self) -> float:
+        return float(self.priority_map.sum())
+
     def in_bounds(self, x: int, y: int) -> bool:
         return 0 <= x < self.width and 0 <= y < self.height
 
@@ -85,6 +102,8 @@ class GridEnvironment:
             "nofly_cells": int(self.nofly_mask.sum()),
             "hazard_mean": float(self.hazard_map.mean()),
             "hazard_max": float(self.hazard_map.max()),
+            "free_cells": self.free_cell_count,
+            "priority_mass": self.priority_mass,
         }
 
 
@@ -258,6 +277,12 @@ def generate_environment(
             targets=targets,
             starts=starts,
             seed=cfg.seed,
+            priority_map=build_priority_map(
+                cfg.width,
+                cfg.height,
+                targets,
+                radius=cfg.target_zone_radius,
+            ),
         )
 
     raise EnvironmentGenerationError(

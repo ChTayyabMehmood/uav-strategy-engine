@@ -31,7 +31,7 @@ def make_chromosome() -> Chromosome:
 def test_structure_is_valid() -> None:
     chromosome = make_chromosome()
     chromosome.validate_structure(2, 3, width=10, height=10)
-    assert chromosome.signature()[0][0] == (1, 2, 0, 1)
+    assert chromosome.signature()[0][0][0] == (1, 2, 0, 1)
 
 
 def test_copy_is_independent() -> None:
@@ -42,6 +42,14 @@ def test_copy_is_independent() -> None:
     assert original.routes[0].waypoints[0] == Waypoint(1, 2, 0, 1)
     assert len(original.routes) == 2
     assert original.signature() != clone.signature()
+
+
+def test_deployment_genes_round_trip() -> None:
+    chromosome = make_chromosome()
+    chromosome.deployments = [(1, 2), (3, 4)]
+    restored = Chromosome.from_dict(chromosome.to_dict())
+    assert restored.deployments == [(1, 2), (3, 4)]
+    assert restored.signature() == chromosome.signature()
 
 
 def test_wrong_route_count_is_rejected() -> None:
