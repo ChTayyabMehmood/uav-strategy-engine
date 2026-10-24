@@ -42,6 +42,8 @@ Its HTML/CSS source and figures are in `report/`.
 
 ## 2. Project structure
 
+The code is intentionally flat: six focused Python modules at the project root, plus tests, results and report folders. Each module has one clear responsibility, which keeps the assignment easy to explain and maintain.
+
 ```
 uav-strategy-engine/
 ├── config.py                     # environment, fleet, fitness and GA settings
