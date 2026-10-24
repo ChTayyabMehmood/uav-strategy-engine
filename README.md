@@ -19,22 +19,22 @@ Its HTML/CSS source and figures are in `report/`.
 
 | Requirement | Where it is implemented |
 | --- | --- |
-| Optimal deployment positions | `Chromosome.deployments`, `genetic_algorithm/population.py`, mutation and crossover |
-| Sensor activation schedules | Sensor mode on every waypoint/leg in `uav/chromosome.py`; evaluated in `simulation/evaluator.py` |
-| Waypoint trajectories | `DroneRoute` and `Waypoint` genes |
-| Hybrid chromosome encoding | `uav/chromosome.py` (integer coordinates + discrete speed/sensor genes) |
-| Multi-objective fitness | `simulation/evaluator.py` (coverage, detection, energy, time, hazard) |
-| Custom crossover and mutation | `genetic_algorithm/crossover.py`, `genetic_algorithm/mutation.py` |
+| Optimal deployment positions | `model.py` (`Chromosome.deployments`), `genetic.py` (sampling, crossover, mutation) |
+| Sensor activation schedules | Sensor mode on every waypoint/leg in `model.py`; evaluated in `simulation.py` |
+| Waypoint trajectories | `DroneRoute` and `Waypoint` genes in `model.py` |
+| Hybrid chromosome encoding | `model.py` (integer coordinates + discrete speed/sensor genes) |
+| Multi-objective fitness | `simulation.py` (coverage, detection, energy, time, hazard) |
+| Custom crossover and mutation | `genetic.py` |
 | Avoid premature convergence | Elitism, spatial operators, random immigrants on stagnation |
-| Hard constraints (range, no-fly) | `simulation/constraints.py`, `simulation/repair.py`, evaluator penalties |
-| Object-oriented implementation | `GridEnvironment`, `Drone`, `Chromosome`, `MissionEvaluator`, `GeneticAlgorithm` |
-| Population init, selection, termination | `genetic_algorithm/population.py`, `selection.py`, `optimizer.py` |
+| Hard constraints (range, no-fly) | `simulation.py` (checks, repair, penalties) |
+| Object-oriented implementation | `model.py`, `simulation.py`, `genetic.py` |
+| Population init, selection, termination | `genetic.py` |
 | GitHub repository + requirements + README | this repository |
-| Convergence plot (best vs average) | `visualization/convergence.py` |
-| Evolved path maps | `visualization/mission_map.py` |
-| Coverage heatmaps across generations | `visualization/coverage.py` (`plot_coverage_evolution`) |
-| Sensitivity analysis | `experiments/sensitivity_analysis.py` |
-| Comparison with random search | `experiments/random_search.py`, `--mode compare` |
+| Convergence plot (best vs average) | `plots.py` |
+| Evolved path maps | `plots.py` |
+| Coverage heatmaps across generations | `plots.py` (`plot_coverage_evolution`) |
+| Sensitivity analysis | `experiments.py` |
+| Comparison with random search | `experiments.py`, `--mode compare` |
 | 3-5 page technical report | `report/` (4 pages) |
 | Automated tests | `tests/` (47 tests) |
 
@@ -45,35 +45,15 @@ Its HTML/CSS source and figures are in `report/`.
 ```
 uav-strategy-engine/
 ├── config.py                     # environment, fleet, fitness and GA settings
+├── model.py                      # targets, grid, priority map, drones, chromosome
+├── simulation.py                 # constraints, repair, evaluator, coverage
+├── genetic.py                    # population, selection, crossover, mutation, optimizer
+├── experiments.py                # random-search baseline + sensitivity
+├── plots.py                      # mission, convergence, coverage and sensitivity plots
 ├── main.py                       # CLI entry point
 ├── requirements.txt
-├── environment/
-│   ├── grid.py                   # deterministic hazard grid + priority map
-│   └── targets.py                # targets and priority-zone construction
-├── uav/
-│   ├── drone.py                  # drone limits and speed/sensor mode tables
-│   └── chromosome.py             # deployment genes + Waypoint/DroneRoute/Chromosome
-├── simulation/
-│   ├── constraints.py            # dense segment sampling and line checks
-│   ├── repair.py                 # waypoint and segment repair
-│   └── evaluator.py              # mission simulation, coverage mask and fitness
-├── genetic_algorithm/
-│   ├── population.py             # deployment sampling + valid initialisation
-│   ├── selection.py              # tournament selection
-│   ├── crossover.py              # deployment/route block-suffix crossover
-│   ├── mutation.py               # spatial, speed, sensor and deployment mutation
-│   └── optimizer.py              # GA loop, elitism, immigrants, caching, history
-├── experiments/
-│   ├── random_search.py          # equal-budget baseline
-│   └── sensitivity_analysis.py   # population / mutation / tournament sweeps
-├── visualization/
-│   ├── mission_map.py            # evolved paths and deployment cells
-│   ├── convergence.py            # best vs average fitness
-│   ├── coverage.py               # coverage maps + coverage evolution
-│   ├── comparison.py             # GA vs random search
-│   └── sensitivity.py            # sensitivity plots
 ├── tests/                        # 47 pytest tests
-├── results/                      # final run artifacts (GA, random, compare, sensitivity)
+├── results/                      # final run artifacts
 └── report/                       # report source, figures and PDF
 ```
 

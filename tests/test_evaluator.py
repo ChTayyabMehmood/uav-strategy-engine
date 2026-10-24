@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 
 from config import FitnessWeights
-from environment import GridEnvironment, Target
+from model import GridEnvironment, Target
 from simulation import MissionEvaluator
-from uav import Chromosome, DroneRoute, Waypoint, build_fleet
+from model import Chromosome, DroneRoute, Waypoint, build_fleet
 from config import FleetConfig
 
 

@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 
 from config import EnvironmentConfig, FitnessWeights, FleetConfig, GAConfig
-from environment import generate_environment
-from genetic_algorithm import GeneticAlgorithm
-from uav import Drone, build_fleet
+from model import generate_environment, Drone, build_fleet
+from genetic import GeneticAlgorithm
+
 
 
 def build_scenario(

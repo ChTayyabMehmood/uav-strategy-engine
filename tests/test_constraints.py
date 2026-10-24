@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from environment import GridEnvironment, Target
-from simulation.constraints import (
+from model import GridEnvironment, Target
+from simulation import (
     nearest_free_cell,
     route_is_clear,
     segment_is_clear,
     segment_samples,
 )
-from simulation.repair import random_valid_route, repair_route
-from uav import DroneRoute, Waypoint
+from simulation import random_valid_route, repair_route
+from model import DroneRoute, Waypoint
 
 
 def make_wall_env() -> GridEnvironment:

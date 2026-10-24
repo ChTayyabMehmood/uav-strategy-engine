@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from config import EnvironmentConfig
-from environment import EnvironmentGenerationError, generate_environment
+from model import EnvironmentGenerationError, generate_environment
 
 
 def test_grid_dimensions_and_targets_are_valid() -> None:

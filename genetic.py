@@ -1,4 +1,4 @@
-"""Reusable genetic-algorithm optimizer for fleet strategy search."""
+"""Genetic algorithm: initialisation, selection, operators and optimizer."""
 
 from __future__ import annotations
 
@@ -10,15 +10,321 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from config import FitnessWeights, GAConfig
-from environment.grid import GridEnvironment
-from genetic_algorithm.crossover import one_point_crossover
-from genetic_algorithm.mutation import mutate
-from genetic_algorithm.population import initialize_population, random_chromosome
-from genetic_algorithm.selection import tournament_select
-from simulation.evaluator import EvaluationResult, MissionEvaluator
-from simulation.repair import repair_chromosome
-from uav.chromosome import Chromosome
-from uav.drone import Drone
+from model import Chromosome, Drone, DroneRoute, GridEnvironment, Waypoint, fleet_for_chromosome
+from simulation import (
+    EvaluationResult,
+    MissionEvaluator,
+    random_valid_route,
+    repair_chromosome,
+    sample_area_waypoint,
+)
+
+
+# ======================================================================
+# Population initialisation
+# ======================================================================
+
+"""Population initialisation."""
+
+
+def sample_deployments(
+    env: GridEnvironment,
+    n_drones: int,
+    rng: np.random.Generator,
+    min_distance: int = 5,
+) -> list[tuple[int, int]] | None:
+    """Choose spread-out free cells for the fleet deployment segment."""
+
+    ys, xs = np.nonzero(env.free_mask)
+    if len(xs) < n_drones:
+        return None
+    cells = list(zip(xs.tolist(), ys.tolist()))
+    for spacing in (min_distance, max(1, min_distance // 2), 1):
+        rng.shuffle(cells)
+        chosen: list[tuple[int, int]] = []
+        for cell in cells:
+            if all(
+                max(abs(cell[0] - c[0]), abs(cell[1] - c[1])) >= spacing
+                for c in chosen
+            ):
+                chosen.append(cell)
+                if len(chosen) == n_drones:
+                    return chosen
+    return None
+
+
+def random_chromosome(
+    env: GridEnvironment,
+    drones: list[Drone],
+    n_waypoints: int,
+    rng: np.random.Generator,
+) -> Chromosome | None:
+    """Build one random, straight-leg-feasible chromosome."""
+
+    starts = sample_deployments(env, len(drones), rng)
+    if starts is None:
+        return None
+    routes: list[DroneRoute] = []
+    for start in starts:
+        route = random_valid_route(
+            env, start, n_waypoints, rng, env.targets
+        )
+        if route is None:
+            return None
+        routes.append(route)
+    return Chromosome(routes=routes, deployments=starts)
+
+
+def initialize_population(
+    size: int,
+    env: GridEnvironment,
+    drones: list[Drone],
+    n_waypoints: int,
+    rng: np.random.Generator,
+    max_attempts: int = 60,
+) -> list[Chromosome]:
+    """Create a diverse initial population of valid chromosomes.
+
+    Diversity comes from random ray directions and random speed/sensor modes.
+    If a chromosome cannot be built after ``max_attempts``, a RuntimeError is
+    raised - this indicates an over-constrained map rather than silently
+    producing invalid individuals.
+    """
+
+    if size < 1:
+        raise ValueError("population size must be >= 1")
+    population: list[Chromosome] = []
+    for _ in range(size):
+        for _attempt in range(max_attempts):
+            chromosome = random_chromosome(
+                env, drones, n_waypoints, rng
+            )
+            if chromosome is not None:
+                population.append(chromosome)
+                break
+        else:
+            raise RuntimeError(
+                "could not initialise a valid chromosome; the environment "
+                "may be too constrained"
+            )
+    return population
+
+# ======================================================================
+# Tournament selection
+# ======================================================================
+
+"""Tournament selection.
+
+A tournament of size ``k`` samples ``k`` distinct candidates uniformly and
+returns the one with the best (feasible, fitness) key.  Larger ``k`` increases
+selection pressure: the probability that the single best candidate in the whole
+population wins a tournament is ``k / N``.  A value of ``k = 2`` is weak
+pressure; ``k = 5`` is noticeably greedy.
+"""
+
+
+def tournament_select(
+    population: list[Chromosome],
+    evaluations: list[EvaluationResult],
+    rng: np.random.Generator,
+    tournament_size: int,
+) -> Chromosome:
+    if len(population) != len(evaluations):
+        raise ValueError("population and evaluations must be aligned")
+    if len(population) == 0:
+        raise ValueError("cannot select from an empty population")
+    if tournament_size < 1:
+        raise ValueError("tournament_size must be >= 1")
+
+    k = min(tournament_size, len(population))
+    indices = rng.choice(len(population), size=k, replace=False)
+    best = max(
+        indices,
+        key=lambda i: (
+            evaluations[i].feasible,
+            evaluations[i].fitness,
+        ),
+    )
+    return population[int(best)]
+
+# ======================================================================
+# Crossover
+# ======================================================================
+
+"""Segment-swapping crossover for fleet chromosomes.
+
+A chromosome is a sequence of three drone blocks.  Each block contains one
+deployment cell and one route, so swapping a suffix of blocks never separates a
+route from the deployment that was evolved with it.  This is a spatial,
+multi-segment one-point crossover: good fleet combinations survive intact,
+while different deployment/route combinations are explored.
+"""
+
+
+def one_point_crossover(
+    parent_a: Chromosome,
+    parent_b: Chromosome,
+    rng: np.random.Generator,
+    crossover_rate: float = 0.9,
+) -> tuple[Chromosome, Chromosome]:
+    """Swap a suffix of drone blocks between two parents."""
+
+    if not 0.0 <= crossover_rate <= 1.0:
+        raise ValueError("crossover_rate must be in [0, 1]")
+    if rng.random() >= crossover_rate:
+        return parent_a.copy(), parent_b.copy()
+    if len(parent_a.routes) != len(parent_b.routes):
+        return parent_a.copy(), parent_b.copy()
+    if bool(parent_a.deployments) != bool(parent_b.deployments):
+        return parent_a.copy(), parent_b.copy()
+
+    n_blocks = len(parent_a.routes)
+    if n_blocks < 2:
+        return parent_a.copy(), parent_b.copy()
+    cut = int(rng.integers(1, n_blocks))
+
+    routes_a = [
+        route.copy()
+        for route in parent_a.routes[:cut] + parent_b.routes[cut:]
+    ]
+    routes_b = [
+        route.copy()
+        for route in parent_b.routes[:cut] + parent_a.routes[cut:]
+    ]
+    deployments_a: list[tuple[int, int]] = []
+    deployments_b: list[tuple[int, int]] = []
+    if parent_a.deployments:
+        deployments_a = (
+            list(parent_a.deployments[:cut])
+            + list(parent_b.deployments[cut:])
+        )
+        deployments_b = (
+            list(parent_b.deployments[:cut])
+            + list(parent_a.deployments[cut:])
+        )
+
+    return (
+        Chromosome(routes=routes_a, deployments=deployments_a),
+        Chromosome(routes=routes_b, deployments=deployments_b),
+    )
+
+# ======================================================================
+# Mutation
+# ======================================================================
+
+"""Spatially meaningful mutation and constraint repair hook."""
+
+
+MOVE_PROBABILITY = 0.60
+SPEED_PROBABILITY = 0.20
+DEPLOYMENT_RATE = 0.05
+
+
+def mutate(
+    chromosome: Chromosome,
+    env: GridEnvironment,
+    drones: list[Drone],
+    rng: np.random.Generator,
+    mutation_rate: float,
+    max_step: int = 4,
+    deployment_rate: float = DEPLOYMENT_RATE,
+) -> Chromosome:
+    """Mutate a copy of ``chromosome`` with per-waypoint probability.
+
+    Three mutation kinds are supported:
+
+    * move the waypoint (local jitter, or occasionally a new clear ray);
+    * change its speed mode;
+    * change its sensor mode.
+
+    Speed/sensor modes always change to a *different* valid mode.  The child is
+    repaired before being returned; the parent object is never modified.
+    """
+
+    if not 0.0 <= mutation_rate <= 1.0:
+        raise ValueError("mutation_rate must be in [0, 1]")
+
+    child = chromosome.copy()
+    if mutation_rate == 0.0:
+        return child
+    if not child.deployments:
+        child.deployments = [drone.start for drone in drones]
+
+    for i in range(len(child.deployments)):
+        if rng.random() >= deployment_rate:
+            continue
+        moved = _nearby_free_cell(env, child.deployments[i], rng)
+        if moved is not None:
+            child.deployments[i] = moved
+
+    fleet = fleet_for_chromosome(drones, child)
+    for drone, route in zip(fleet, child.routes):
+        previous = drone.start
+        for i, wp in enumerate(route.waypoints):
+            if rng.random() >= mutation_rate:
+                previous = (wp.x, wp.y)
+                continue
+
+            draw = float(rng.random())
+            if draw < MOVE_PROBABILITY:
+                if rng.random() < 0.15:
+                    cell = sample_area_waypoint(
+                        env, previous, rng, env.targets
+                    )
+                else:
+                    dx = int(rng.integers(-max_step, max_step + 1))
+                    dy = int(rng.integers(-max_step, max_step + 1))
+                    if dx == 0 and dy == 0:
+                        dx = 1
+                    x = min(max(wp.x + dx, 0), env.width - 1)
+                    y = min(max(wp.y + dy, 0), env.height - 1)
+                    cell = (x, y)
+                if cell is not None:
+                    wp = Waypoint(cell[0], cell[1], wp.speed, wp.sensor)
+            elif draw < MOVE_PROBABILITY + SPEED_PROBABILITY:
+                new_speed = int((wp.speed + int(rng.integers(1, 3))) % 3)
+                wp = Waypoint(wp.x, wp.y, new_speed, wp.sensor)
+            else:
+                new_sensor = int((wp.sensor + int(rng.integers(1, 3))) % 3)
+                wp = Waypoint(wp.x, wp.y, wp.speed, new_sensor)
+
+            route.waypoints[i] = wp
+            previous = (wp.x, wp.y)
+
+    repaired = repair_chromosome(env, child, drones, rng)
+    if repaired is None:
+        # Documented fallback: keep the unmutated parent rather than emit an
+        # invalid candidate.
+        return chromosome.copy()
+    return repaired
+
+
+def _nearby_free_cell(
+    env: GridEnvironment,
+    cell: tuple[int, int],
+    rng: np.random.Generator,
+    radius: int = 10,
+) -> tuple[int, int] | None:
+    """Sample a free deployment cell near ``cell``."""
+
+    x, y = cell
+    for _ in range(24):
+        nx = int(np.clip(x + rng.integers(-radius, radius + 1), 0, env.width - 1))
+        ny = int(np.clip(y + rng.integers(-radius, radius + 1), 0, env.height - 1))
+        if env.is_free(nx, ny):
+            return nx, ny
+    ys, xs = np.nonzero(env.free_mask)
+    if len(xs) == 0:
+        return None
+    index = int(rng.integers(0, len(xs)))
+    return int(xs[index]), int(ys[index])
+
+# ======================================================================
+# GA optimizer
+# ======================================================================
+
+"""Reusable genetic-algorithm optimizer for fleet strategy search."""
+
 
 LOGGER = logging.getLogger(__name__)
 

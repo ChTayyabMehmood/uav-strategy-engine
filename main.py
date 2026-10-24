@@ -27,12 +27,15 @@ from config import (
     GAConfig,
     SimulationConfig,
 )
-from environment import EnvironmentGenerationError, generate_environment
-from experiments.random_search import run_random_search
-from experiments.sensitivity_analysis import run_sensitivity
-from genetic_algorithm import GeneticAlgorithm, OptimizationResult
-from uav import build_fleet, modes_table
-from visualization import (
+from model import (
+    EnvironmentGenerationError,
+    build_fleet,
+    generate_environment,
+    modes_table,
+)
+from experiments import run_random_search, run_sensitivity
+from genetic import GeneticAlgorithm, OptimizationResult
+from plots import (
     plot_algorithm_comparison,
     plot_best_so_far,
     plot_convergence,

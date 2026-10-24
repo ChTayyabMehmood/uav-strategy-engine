@@ -8,12 +8,12 @@ import numpy as np
 import pytest
 
 from config import EnvironmentConfig, FleetConfig
-from environment import generate_environment
-from genetic_algorithm.crossover import one_point_crossover
-from genetic_algorithm.mutation import mutate
-from genetic_algorithm.selection import tournament_select
-from simulation.repair import repair_chromosome
-from uav import build_fleet
+from model import generate_environment, build_fleet
+from genetic import one_point_crossover
+from genetic import mutate
+from genetic import tournament_select
+from simulation import repair_chromosome
+
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def scenario():
 
 
 def make_parents(scenario, seed: int):
-    from genetic_algorithm.population import initialize_population
+    from genetic import initialize_population
 
     env, drones, fleet = scenario
     rng = np.random.default_rng(seed)

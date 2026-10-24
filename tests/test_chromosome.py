@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from uav import Chromosome, DroneRoute, Waypoint
+from model import Chromosome, DroneRoute, Waypoint
 
 
 def make_chromosome() -> Chromosome:
